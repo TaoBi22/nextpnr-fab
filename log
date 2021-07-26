@@ -1,0 +1,6 @@
+[  5%] Built target bbasm
+Scanning dependencies of target nextpnr-fabulous
+[  7%] Building CXX object CMakeFiles/nextpnr-fabulous.dir/fabulous/pack.cc.o
+[ 10%] Building CXX object CMakeFiles/nextpnr-fabulous.dir/fabulous/cells.cc.o
+[ 13%] Linking CXX executable nextpnr-fabulous
+[100%] Built target nextpnr-fabulous
