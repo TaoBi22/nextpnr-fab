@@ -42,7 +42,7 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
     }
     new_cell->type = type;
     if (type == ctx->id("FABULOUS_LC")) {
-        new_cell->type = ctx->id("LUT4");
+        //new_cell->type = ctx->id("LUT4");
         new_cell->params[ctx->id("INIT")] = 0;
         new_cell->params[ctx->id("DFF_ENABLE")] = 0;
 
@@ -52,11 +52,11 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
         add_port(ctx, new_cell.get(), "I3", PORT_IN);
         add_port(ctx, new_cell.get(), "CIN", PORT_IN);
         add_port(ctx, new_cell.get(), "CLK", PORT_IN);
-        add_port(ctx, new_cell.get(), "CE", PORT_IN);
-        add_port(ctx, new_cell.get(), "SR", PORT_IN);
+        //add_port(ctx, new_cell.get(), "CE", PORT_IN);
+        //add_port(ctx, new_cell.get(), "SR", PORT_IN);
         add_port(ctx, new_cell.get(), "O", PORT_OUT);
-        //add_port(ctx, new_cell.get(), "OQ", PORT_OUT);
-        add_port(ctx, new_cell.get(), "OMUX", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q", PORT_OUT);
+        //add_port(ctx, new_cell.get(), "OMUX", PORT_OUT);
         add_port(ctx, new_cell.get(), "COUT", PORT_OUT);
     } else if (type == ctx->id("LUT4AB_mux")){
         add_port(ctx, new_cell.get(), "O", PORT_OUT);
@@ -64,6 +64,9 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
         add_port(ctx, new_cell.get(), "I1", PORT_IN);
         add_port(ctx, new_cell.get(), "S", PORT_IN);
     } else if (type == ctx->id("IO_1_bidirectional_frame_config_pass")) {
+        new_cell->params[ctx->id("INPUT_USED")] = 0;
+        new_cell->params[ctx->id("OUTPUT_USED")] = 0;
+        new_cell->params[ctx->id("ENABLE_USED")] = 0;
         //new_cell->type = ctx->id("IO_1_bidirectional_frame_config_pass");
         add_port(ctx, new_cell.get(), "I", PORT_IN);
         add_port(ctx, new_cell.get(), "Q", PORT_OUT);
@@ -84,95 +87,95 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
     } else if (type == ctx->id("BUFGCTRL")) {
         add_port(ctx, new_cell.get(), "I0", PORT_IN);
         add_port(ctx, new_cell.get(), "O", PORT_OUT);
-    /* } else if (type == ctx->id("FABULOUS_REGFILE")){
-        new_cell->type = ctx->id("RegFile_32x4");
-        add_port(ctx, new_cell.get(), "D[0]", PORT_IN);
-        add_port(ctx, new_cell.get(), "D[1]", PORT_IN);
-        add_port(ctx, new_cell.get(), "D[2]", PORT_IN);
-        add_port(ctx, new_cell.get(), "D[3]", PORT_IN);
-        add_port(ctx, new_cell.get(), "W_ADR[0]", PORT_IN);
-        add_port(ctx, new_cell.get(), "W_ADR[1]", PORT_IN);
-        add_port(ctx, new_cell.get(), "W_ADR[2]", PORT_IN);
-        add_port(ctx, new_cell.get(), "W_ADR[3]", PORT_IN);
-        add_port(ctx, new_cell.get(), "W_ADR[4]", PORT_IN);
+     } else if (type == ctx->id("RegFile_32x4")){
+        //new_cell->type = ctx->id("RegFile_32x4");
+        add_port(ctx, new_cell.get(), "D0", PORT_IN);
+        add_port(ctx, new_cell.get(), "D1", PORT_IN);
+        add_port(ctx, new_cell.get(), "D2", PORT_IN);
+        add_port(ctx, new_cell.get(), "D3", PORT_IN);
+        add_port(ctx, new_cell.get(), "W_ADR0", PORT_IN);
+        add_port(ctx, new_cell.get(), "W_ADR1", PORT_IN);
+        add_port(ctx, new_cell.get(), "W_ADR2", PORT_IN);
+        add_port(ctx, new_cell.get(), "W_ADR3", PORT_IN);
+        add_port(ctx, new_cell.get(), "W_ADR4", PORT_IN);
         add_port(ctx, new_cell.get(), "W_en", PORT_IN);
-        add_port(ctx, new_cell.get(), "AD[0]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "AD[1]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "AD[2]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "AD[3]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "A_ADR[0]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A_ADR[1]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A_ADR[2]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A_ADR[3]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A_ADR[4]", PORT_IN);
-        add_port(ctx, new_cell.get(), "BD[0]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "BD[1]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "BD[2]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "BD[3]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "B_ADR[0]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B_ADR[1]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B_ADR[2]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B_ADR[3]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B_ADR[4]", PORT_IN);
-    } else if (type == ctx->id("FABULOUS_MULADD")){
-        new_cell->type = ctx->id("MULADD");
-        add_port(ctx, new_cell.get(), "A[0]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A[1]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A[2]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A[3]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A[4]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A[5]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A[6]", PORT_IN);
-        add_port(ctx, new_cell.get(), "A[7]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[0]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[1]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[2]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[3]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[4]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[5]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[6]", PORT_IN);
-        add_port(ctx, new_cell.get(), "B[7]", PORT_IN);
-        add_port(ctx, new_cell.get(), "Q[0]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[1]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[2]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[3]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[4]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[5]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[6]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[7]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[8]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[9]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[10]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[11]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[12]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[13]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[14]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[15]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[16]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[17]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[18]", PORT_OUT);
-        add_port(ctx, new_cell.get(), "Q[19]", PORT_OUT);
+        add_port(ctx, new_cell.get(), "AD0", PORT_OUT);
+        add_port(ctx, new_cell.get(), "AD1", PORT_OUT);
+        add_port(ctx, new_cell.get(), "AD2", PORT_OUT);
+        add_port(ctx, new_cell.get(), "AD3", PORT_OUT);
+        add_port(ctx, new_cell.get(), "A_ADR0", PORT_IN);
+        add_port(ctx, new_cell.get(), "A_ADR1", PORT_IN);
+        add_port(ctx, new_cell.get(), "A_ADR2", PORT_IN);
+        add_port(ctx, new_cell.get(), "A_ADR3", PORT_IN);
+        add_port(ctx, new_cell.get(), "A_ADR4", PORT_IN);
+        add_port(ctx, new_cell.get(), "BD0", PORT_OUT);
+        add_port(ctx, new_cell.get(), "BD1", PORT_OUT);
+        add_port(ctx, new_cell.get(), "BD2", PORT_OUT);
+        add_port(ctx, new_cell.get(), "BD3", PORT_OUT);
+        add_port(ctx, new_cell.get(), "B_ADR0", PORT_IN);
+        add_port(ctx, new_cell.get(), "B_ADR1", PORT_IN);
+        add_port(ctx, new_cell.get(), "B_ADR2", PORT_IN);
+        add_port(ctx, new_cell.get(), "B_ADR3", PORT_IN);
+        add_port(ctx, new_cell.get(), "B_ADR4", PORT_IN);
+    } else if (type == ctx->id("MULADD")){
+        //new_cell->type = ctx->id("MULADD");
+        add_port(ctx, new_cell.get(), "A0", PORT_IN);
+        add_port(ctx, new_cell.get(), "A1", PORT_IN);
+        add_port(ctx, new_cell.get(), "A2", PORT_IN);
+        add_port(ctx, new_cell.get(), "A3", PORT_IN);
+        add_port(ctx, new_cell.get(), "A4", PORT_IN);
+        add_port(ctx, new_cell.get(), "A5", PORT_IN);
+        add_port(ctx, new_cell.get(), "A6", PORT_IN);
+        add_port(ctx, new_cell.get(), "A7", PORT_IN);
+        add_port(ctx, new_cell.get(), "B0", PORT_IN);
+        add_port(ctx, new_cell.get(), "B1", PORT_IN);
+        add_port(ctx, new_cell.get(), "B2", PORT_IN);
+        add_port(ctx, new_cell.get(), "B3", PORT_IN);
+        add_port(ctx, new_cell.get(), "B4", PORT_IN);
+        add_port(ctx, new_cell.get(), "B5", PORT_IN);
+        add_port(ctx, new_cell.get(), "B6", PORT_IN);
+        add_port(ctx, new_cell.get(), "B7", PORT_IN);
+        add_port(ctx, new_cell.get(), "Q0", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q1", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q2", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q3", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q4", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q5", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q6", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q7", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q8", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q9", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q10", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q11", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q12", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q13", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q14", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q15", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q16", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q17", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q18", PORT_OUT);
+        add_port(ctx, new_cell.get(), "Q19", PORT_OUT);
         add_port(ctx, new_cell.get(), "clr", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[0]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[1]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[2]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[3]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[4]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[5]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[6]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[7]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[8]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[9]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[10]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[11]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[12]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[13]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[14]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[15]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[16]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[17]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[18]", PORT_IN);
-        add_port(ctx, new_cell.get(), "C[19]", PORT_IN); */
+        add_port(ctx, new_cell.get(), "C0", PORT_IN);
+        add_port(ctx, new_cell.get(), "C1", PORT_IN);
+        add_port(ctx, new_cell.get(), "C2", PORT_IN);
+        add_port(ctx, new_cell.get(), "C3", PORT_IN);
+        add_port(ctx, new_cell.get(), "C4", PORT_IN);
+        add_port(ctx, new_cell.get(), "C5", PORT_IN);
+        add_port(ctx, new_cell.get(), "C6", PORT_IN);
+        add_port(ctx, new_cell.get(), "C7", PORT_IN);
+        add_port(ctx, new_cell.get(), "C8", PORT_IN);
+        add_port(ctx, new_cell.get(), "C9", PORT_IN);
+        add_port(ctx, new_cell.get(), "C10", PORT_IN);
+        add_port(ctx, new_cell.get(), "C11", PORT_IN);
+        add_port(ctx, new_cell.get(), "C12", PORT_IN);
+        add_port(ctx, new_cell.get(), "C13", PORT_IN);
+        add_port(ctx, new_cell.get(), "C14", PORT_IN);
+        add_port(ctx, new_cell.get(), "C15", PORT_IN);
+        add_port(ctx, new_cell.get(), "C16", PORT_IN);
+        add_port(ctx, new_cell.get(), "C17", PORT_IN);
+        add_port(ctx, new_cell.get(), "C18", PORT_IN);
+        add_port(ctx, new_cell.get(), "C19", PORT_IN); 
     } else {
         log_error("unable to create generic cell of type %s", type.c_str(ctx));
     }
@@ -220,7 +223,7 @@ void dff_to_lc(const Context *ctx, CellInfo *dff, CellInfo *lc, bool pass_thru_l
         replace_port(dff, ctx->id("D"),lc, ctx->id("I0"));
     }
 
-    replace_port(dff, ctx->id("O"), lc, ctx->id("O"));
+    replace_port(dff, ctx->id("O"), lc, ctx->id("Q"));
 }
 
 void nxio_to_iob(Context *ctx, CellInfo *nxio, CellInfo *iob, pool<IdString> &todelete_cells)
@@ -262,4 +265,3 @@ void nxio_to_iob(Context *ctx, CellInfo *nxio, CellInfo *iob, pool<IdString> &to
 }
 
 NEXTPNR_NAMESPACE_END
-

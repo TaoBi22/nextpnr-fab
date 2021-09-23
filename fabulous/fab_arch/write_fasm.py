@@ -42,7 +42,14 @@ def write_fasm(ctx, paramCfg, f):
 			if cfg.numeric:
 				if cfg.width == 1:
 					if int(val) != 0:
-						print("%s.%s" % (cell.bel, fasm_name), file=f)
+						if fasm_name == 'OUTPUT_USED':
+						    print("%s.GND0.%s_T" % (cell.bel.split('.')[0], cell.bel.split('.')[1]), file=f)
+						elif fasm_name == 'INPUT_USED':
+						    print("%s.VCC0.%s_T" % (cell.bel.split('.')[0], cell.bel.split('.')[1]), file=f)
+						elif fasm_name == 'DFF_ENABLE':
+						    print("%s.FF" % (cell.bel), file=f)
+						else:
+						    print("%s.%s" % (cell.bel, fasm_name), file=f)
 				else:
 					# Parameters with width >32 are direct binary, otherwise denary
 					print("%s.%s[%d:0] = %d'b%s" % (cell.bel, fasm_name, cfg.width-1, cfg.width, val), file=f)

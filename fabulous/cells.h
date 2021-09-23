@@ -29,7 +29,7 @@ NEXTPNR_NAMESPACE_BEGIN
 std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std::string name = "");
 
 // Return true if a cell is a LUT
-inline bool is_lut(const BaseCtx *ctx, const CellInfo *cell) { return cell->type == ctx->id("LUT4"); }
+inline bool is_lut(const BaseCtx *ctx, const CellInfo *cell) { return cell->type == ctx->id("LUT1") || cell->type == ctx->id("LUT2") || cell->type == ctx->id("LUT3") || cell->type == ctx->id("LUT4"); }
 
 // Return true if a cell is a flipflop
 inline bool is_ff(const BaseCtx *ctx, const CellInfo *cell) { return cell->type == ctx->id("LUTFF"); }

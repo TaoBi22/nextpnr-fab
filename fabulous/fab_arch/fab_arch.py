@@ -10,6 +10,14 @@ wires = []
 bels = []
 pips = []
 # Create bels
+
+ctx.addBel(name="X0Y0.A", type="Global_Clock", loc=Loc(0, 0, 1), gb=False, hidden=False)
+bels.append("X0Y0.A")
+if "X0Y0_CLK" not in wires:
+    wires.append("X0Y0_CLK")
+    ctx.addWire(name="X0Y0_CLK", type="CLK", x=0, y=0)
+ctx.addBelOutput(bel="X0Y0.A", name="CLK", wire="X0Y0_CLK")
+
 try:
     with open("./bel.txt", 'r') as file :
         bel_lines = file.readlines()
@@ -23,61 +31,126 @@ for i, line in enumerate(bel_lines):
     if len(context) < 6:
         continue
     tile = context[0]
-    bel_x = int(context[1][1])
-    bel_y = int(context[2][1])
-    bel_z = int(ord(context[3])-96)
+    bel_x = int(context[1][1:])
+    bel_y = int(context[2][1:])
+    bel_z = int(ord(context[3])-64)
     bel_idx = context[3]
     bel_type = context[4]
     bel_ports = context[5:]
     
-    bel_name = tile+'_'+bel_type+'_'+bel_idx
-    wire_name = tile+'_'+port
+    bel_name = tile+'.'+bel_idx
     
     if bel_name not in bels:
         ctx.addBel(name=bel_name, type=bel_type, loc=Loc(bel_x, bel_y, bel_z), gb=False, hidden=False)
         bels.append(bel_name)
     if bel_type == "IO_1_bidirectional_frame_config_pass":
         for port in bel_ports:
+            wire_name = tile+'_'+port
             #ctx.addWire(name=tile+'_'+bel_idx+'_CLK', type='IO_CLK', x=bel_x, y=bel_y)
             if wire_name not in wires:
                 wires.append(wire_name)
                 ctx.addWire(name=wire_name, type='IO_'+port[-1], x=bel_x, y=bel_y)
             if port[-1] in ['I', 'T']:
-                ctx.addBelInput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
+                ctx.addBelInput(bel=bel_name, name=port[-1], wire=wire_name)
             else:
-                ctx.addBelOutput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
-    else if bel_type == "InPass4_frame_config" or bel_type == "OutPass4_frame_config":
+                ctx.addBelOutput(bel=bel_name, name=port[-1], wire=wire_name)
+    elif bel_type == "InPass4_frame_config":
         for port in bel_ports:
+            wire_name = tile+'_'+port
             if wire_name not in wires:
                 wires.append(wire_name)
                 ctx.addWire(name=wire_name, type=port[0:8], x=bel_x, y=bel_y)
-            if port[-2] == 'I':
-                ctx.addBelInput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
-            else :
-                ctx.addBelOutput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
-    else if bel_type == "LUT4":
+            ctx.addBelOutput(bel=bel_name, name=port[-2:], wire=wire_name)
+    elif bel_type == "OutPass4_frame_config":
         for port in bel_ports:
+            wire_name = tile+'_'+port
+            if wire_name not in wires:
+                wires.append(wire_name)
+                ctx.addWire(name=wire_name, type=port[0:8], x=bel_x, y=bel_y)
+            ctx.addBelInput(bel=bel_name, name=port[-2:], wire=wire_name)
+    elif bel_type == "RegFile_32x4":
+        wire_name = tile+"_CLK"
+        if wire_name not in wires:
+            wires.append(wire_name)
+            ctx.addWire(name=wire_name, type="reg_clk", x=bel_x, y=bel_y)
+        ctx.addBelInput(bel=bel_name, name="CLK", wire=wire_name)
+        ctx.addPip(name="X0Y0_CLK"+'_'+wire_name, type="global_clock",
+               srcWire="X0Y0_CLK", dstWire=wire_name,
+               delay=ctx.getDelayFromNS(0.05), loc=Loc(0, 0, 0))
+        for port in bel_ports:
+            wire_name = tile+'_'+port
+            if port[0] == 'D':
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="WRITE_DATA", x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
+            elif port[0] == 'W':
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="W_ADR", x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
+            elif port[1] == 'D':
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="READ_DATA", x=bel_x, y=bel_y)
+                ctx.addBelOutput(bel=bel_name, name=port, wire=wire_name)
+            else:
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="READ_ADR", x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
+    elif bel_type == "MULADD":
+        for port in bel_ports:
+            wire_name = tile+'_'+port
+            if port[0] == 'Q':
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="DATA_OUT", x=bel_x, y=bel_y)
+                ctx.addBelOutput(bel=bel_name, name=port, wire=wire_name)
+            elif port == "clr":
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="CLR", x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
+            else:
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="DATA_IN", x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
+    elif bel_type == "FABULOUS_LC":
+        wire_name = tile+"_L"+bel_idx+"_CLK"
+        if wire_name not in wires:
+            wires.append(wire_name)
+            ctx.addWire(name=wire_name, type="LUT_in", x=bel_x, y=bel_y)
+        ctx.addBelInput(bel=bel_name, name="CLK", wire=wire_name)
+        ctx.addPip(name="X0Y0_CLK"+'_'+wire_name, type="global_clock",
+               srcWire="X0Y0_CLK", dstWire=wire_name,
+               delay=ctx.getDelayFromNS(0.05), loc=Loc(0, 0, 0))
+        for port in bel_ports:
+            wire_name = tile+'_'+port
             if port[3] == 'I':
                 if wire_name not in wires:
                     wires.append(wire_name)
                     ctx.addWire(name=wire_name, type="LUT_in", x=bel_x, y=bel_y)
-                ctx.addBelInput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
-            else if port[3] == 'O' or  port[3] == 'Q':
+                ctx.addBelInput(bel=bel_name, name=port[3:], wire=wire_name)
+            elif port[3] == 'O' or  port[3] == 'Q':
                 if wire_name not in wires:
                     wires.append(wire_name)
                     ctx.addWire(name=wire_name, type="LUT_out", x=bel_x, y=bel_y)
-                ctx.addBelOutput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
+                ctx.addBelOutput(bel=bel_name, name=port[3], wire=wire_name)
             else:
                 if port[-1] == 'i':
                     if wire_name not in wires:
                         wires.append(wire_name)
                         ctx.addWire(name=wire_name, type="carry_in", x=bel_x, y=bel_y)
-                    ctx.addBelInput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
+                    ctx.addBelInput(bel=bel_name, name="Ci", wire=wire_name)
                 else:
                     if wire_name not in wires:
                         wires.append(wire_name)
                         ctx.addWire(name=wire_name, type="carry_out", x=bel_x, y=bel_y)
-                    ctx.addBelOutput(bel=tile+'_'+bel_type+'_'+bel_idx, name=port, wire=tile+'_'+port)
+                    ctx.addBelOutput(bel=bel_name, name="Co", wire=wire_name)
+
+print ('reading bels finish\n')
 
 # Pips
 try:
@@ -91,12 +164,14 @@ for i, line in enumerate(pip_lines):
         continue
     context = line.split(',')
     src_tile = context[0]
-    src_x = int(context[0][1])
-    src_y = int(context[0][3])
+    src_loc = context[0].replace('X','').split('Y')
+    src_x = int(src_loc[0])
+    src_y = int(src_loc[1])
     src_port = context[1]
     dst_tile = context[2]
-    dst_x = int(context[2][1])
-    dst_y = int(context[2][3])
+    dst_loc = context[2].replace('X','').split('Y')
+    dst_x = int(dst_loc[0])
+    dst_y = int(dst_loc[1])
     dst_port = context[3]
     src_wire_name = src_tile+'_'+src_port
     dst_wire_name = dst_tile+'_'+dst_port
@@ -112,4 +187,7 @@ for i, line in enumerate(pip_lines):
     ctx.addPip(name=pip_name, type="interconnect",
                srcWire=src_wire_name, dstWire=dst_wire_name,
                delay=ctx.getDelayFromNS(0.05), loc=Loc(src_x, src_y, 0))
+               
+print ('reading pips finish\n')
+
 
