@@ -3,7 +3,6 @@ from array import *
 import fileinput
 import sys, getopt
 import csv
-from simple_config import *
 
 
 wires = []
