@@ -26,7 +26,7 @@ except IOError:
 for i, line in enumerate(bel_lines):
     if '#' in line:
         continue
-    context = line.split(',')
+    context = line.replace("\n", "").split(',')
     if len(context) < 6:
         continue
     tile = context[0]
