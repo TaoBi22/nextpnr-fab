@@ -132,11 +132,15 @@ for i, line in enumerate(bel_lines):
                     wires.append(wire_name)
                     ctx.addWire(name=wire_name, type="LUT_in", x=bel_x, y=bel_y)
                 ctx.addBelInput(bel=bel_name, name=port[3:], wire=wire_name)
-            elif port[3] == 'O' or  port[3] == 'Q':
+            elif port[3] == 'O':# or  port[3] == 'Q':
                 if wire_name not in wires:
                     wires.append(wire_name)
+                    wires.append(wire_name.replace('_O','_Q'))
                     ctx.addWire(name=wire_name, type="LUT_out", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name.replace('_O','_Q'), type="LUT_out", x=bel_x, y=bel_y)
+                    #print(wire_name.replace('_O','_Q'))
                 ctx.addBelOutput(bel=bel_name, name=port[3], wire=wire_name)
+                ctx.addBelOutput(bel=bel_name, name='Q', wire=wire_name.replace('_O','_Q'))
             else:
                 if port[-1] == 'i':
                     if wire_name not in wires:
@@ -186,6 +190,12 @@ for i, line in enumerate(pip_lines):
     ctx.addPip(name=pip_name, type="interconnect",
                srcWire=src_wire_name, dstWire=dst_wire_name,
                delay=ctx.getDelayFromNS(0.05), loc=Loc(src_x, src_y, 0))
+    lco_str = ['LA_O','LB_O','LC_O','LD_O','LE_O','LF_O','LG_O','LH_O']
+    if any(lco in src_wire_name+dst_wire_name for lco in lco_str):
+        #print (src_wire_name+dst_wire_name)
+        ctx.addPip(name=pip_name.replace('_O','_Q'), type="interconnect",
+                       srcWire=src_wire_name.replace('_O','_Q'), dstWire=dst_wire_name.replace('_O','_Q'),
+                       delay=ctx.getDelayFromNS(0.05), loc=Loc(src_x, src_y, 0))
                
 print ('reading pips finish\n')
 

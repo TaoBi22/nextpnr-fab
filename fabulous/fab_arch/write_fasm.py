@@ -30,7 +30,11 @@ def write_fasm(ctx, paramCfg, f):
 		print("# Net %s" % nname, file=f)
 		for wire, pip in sorted(net.wires, key=lambda x: str(x[1])):
 			if pip.pip != "":
-				print("%s" % pip.pip, file=f)
+				lco_str = ['LA_Q','LB_Q','LC_Q','LD_Q','LE_Q','LF_Q','LG_Q','LH_Q']
+				if any(lco in pip.pip for lco in lco_str):
+				    print("%s" % pip.pip.replace('_Q','_O'), file=f)
+				else:
+				    print("%s" % pip.pip, file=f)
 		print("", file=f)
 	for cname, cell in sorted(ctx.cells, key=lambda x: str(x[1].name)):
 		print("# Cell %s at %s" % (cname, cell.bel), file=f)

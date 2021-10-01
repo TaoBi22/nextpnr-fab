@@ -4,7 +4,7 @@
 set LUT_K 4
 if {$argc > 0} { set LUT_K [lindex $argv 0] }
 yosys read_verilog -lib [file dirname [file normalize $argv0]]/prims.v
-yosys hierarchy -check -top sequential_16bit
+yosys hierarchy -check -top [lindex $argv 1]
 yosys proc
 yosys flatten
 yosys tribuf -logic
@@ -22,4 +22,4 @@ yosys clean
 yosys hierarchy -check
 yosys stat
 
-if {$argc > 1} { yosys write_json [lindex $argv 1] }
+if {$argc > 1} { yosys write_json [lindex $argv 2] }
