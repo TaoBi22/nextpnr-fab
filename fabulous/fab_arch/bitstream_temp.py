@@ -4,6 +4,7 @@ from write_fasm import *
 # Need to tell FASM generator how to write parameters
 # (celltype, parameter) -> ParameterConfig
 param_map = {
+	("FABULOUS_LC", "K"): ParameterConfig(write=False),
 	("FABULOUS_LC", "INIT"): ParameterConfig(write=True, numeric=True, width=16),
 	("FABULOUS_LC", "DFF_ENABLE"): ParameterConfig(write=True, numeric=True, width=1),
 

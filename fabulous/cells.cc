@@ -43,6 +43,7 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
     new_cell->type = type;
     if (type == ctx->id("FABULOUS_LC")) {
         //new_cell->type = ctx->id("LUT4");
+        new_cell->params[ctx->id("K")] = ctx->args.K;
         new_cell->params[ctx->id("INIT")] = 0;
         new_cell->params[ctx->id("DFF_ENABLE")] = 0;
 

@@ -32,9 +32,9 @@ def write_fasm(ctx, paramCfg, f):
 			if pip.pip != "":
 				lco_str = ['LA_Q','LB_Q','LC_Q','LD_Q','LE_Q','LF_Q','LG_Q','LH_Q']
 				if any(lco in pip.pip for lco in lco_str):
-				    print("%s" % pip.pip.replace('_Q','_O'), file=f)
+					print("%s" % pip.pip.replace('_Q','_O'), file=f)
 				else:
-				    print("%s" % pip.pip, file=f)
+					print("%s" % pip.pip, file=f)
 		print("", file=f)
 	for cname, cell in sorted(ctx.cells, key=lambda x: str(x[1].name)):
 		print("# Cell %s at %s" % (cname, cell.bel), file=f)
@@ -47,15 +47,19 @@ def write_fasm(ctx, paramCfg, f):
 				if cfg.width == 1:
 					if int(val) != 0:
 						if fasm_name == 'OUTPUT_USED':
-						    print("%s.GND0.%s_T" % (cell.bel.split('.')[0], cell.bel.split('.')[1]), file=f)
+							print("%s.GND0.%s_T" % (cell.bel.split('.')[0], cell.bel.split('.')[1]), file=f)
 						elif fasm_name == 'INPUT_USED':
-						    print("%s.VCC0.%s_T" % (cell.bel.split('.')[0], cell.bel.split('.')[1]), file=f)
+							print("%s.VCC0.%s_T" % (cell.bel.split('.')[0], cell.bel.split('.')[1]), file=f)
 						elif fasm_name == 'DFF_ENABLE':
-						    print("%s.FF" % (cell.bel), file=f)
+							print("%s.FF" % (cell.bel), file=f)
 						else:
-						    print("%s.%s" % (cell.bel, fasm_name), file=f)
+							print("%s.%s" % (cell.bel, fasm_name), file=f)
 				else:
 					# Parameters with width >32 are direct binary, otherwise denary
+					if len(val) < cfg.width:
+						val_temp = val
+						for i in range(int(cfg.width/len(val))-1):
+							val += val_temp
 					print("%s.%s[%d:0] = %d'b%s" % (cell.bel, fasm_name, cfg.width-1, cfg.width, val), file=f)
 			else:
 				print("%s.%s.%s" % (cell.bel, fasm_name, val), file=f)

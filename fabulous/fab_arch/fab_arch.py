@@ -180,20 +180,24 @@ for i, line in enumerate(pip_lines):
     dst_wire_name = dst_tile+'_'+dst_port
     pip_delay = int(context[4])
     pip_name = src_tile+'.'+context[5]
+    pip_type = context[5]
     
     if src_wire_name not in wires:
         wires.append(src_wire_name)
-        ctx.addWire(name=src_wire_name, type="interconnect", x=src_x, y=src_y)
+        #ctx.addWire(name=src_wire_name, type="interconnect", x=src_x, y=src_y)
+        ctx.addWire(name=src_wire_name, type=src_port, x=src_x, y=src_y)
     if dst_wire_name not in wires:
         wires.append(dst_wire_name)
-        ctx.addWire(name=dst_wire_name, type="interconnect", x=dst_x, y=dst_y)
-    ctx.addPip(name=pip_name, type="interconnect",
+        #ctx.addWire(name=dst_wire_name, type="interconnect", x=dst_x, y=dst_y)
+        ctx.addWire(name=dst_wire_name, type=dst_port, x=dst_x, y=dst_y)
+    #ctx.addPip(name=pip_name, type="interconnect",
+    ctx.addPip(name=pip_name, type=pip_name,
                srcWire=src_wire_name, dstWire=dst_wire_name,
                delay=ctx.getDelayFromNS(0.05), loc=Loc(src_x, src_y, 0))
     lco_str = ['LA_O','LB_O','LC_O','LD_O','LE_O','LF_O','LG_O','LH_O']
     if any(lco in src_wire_name+dst_wire_name for lco in lco_str):
-        #print (src_wire_name+dst_wire_name)
-        ctx.addPip(name=pip_name.replace('_O','_Q'), type="interconnect",
+        #ctx.addPip(name=pip_name.replace('_O','_Q'), type="interconnect",
+        ctx.addPip(name=pip_name.replace('_O','_Q'), type=pip_type,
                        srcWire=src_wire_name.replace('_O','_Q'), dstWire=dst_wire_name.replace('_O','_Q'),
                        delay=ctx.getDelayFromNS(0.05), loc=Loc(src_x, src_y, 0))
                

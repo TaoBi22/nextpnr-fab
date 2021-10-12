@@ -1875,8 +1875,8 @@ def genBitstream(fasmFile: str, specFile: str, bitstreamFile: str):
 
 		if specDict["TileMap"][tileKey] == "NULL":
 			continue
-		elif 'term' in specDict["TileMap"][tileKey]:
-			continue
+		#elif 'term' in specDict["TileMap"][tileKey]:
+			#continue
 		for frameIndex in range(len(specDict["FrameMap"][specDict["TileMap"][tileKey]])):
 			#print (tileDict[tileKey]) #:FrameBitsPerRow*frameIndex
 			frame_bit_row = (''.join(map(str, (tileDict[tileKey][FrameBitsPerRow*frameIndex:(FrameBitsPerRow*frameIndex)+FrameBitsPerRow]))))[::-1]
