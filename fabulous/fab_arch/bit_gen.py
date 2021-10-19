@@ -1841,7 +1841,7 @@ def genBitstream(fasmFile: str, specFile: str, bitstreamFile: str):
 			#		 print(specDict["TileSpecs"][tileLoc][featureName])
 			#		 print(bitIndex)
 			else:
-				print(specDict["TileSpecs"][tileLoc].keys())
+				#print(specDict["TileSpecs"][tileLoc].keys())
 				print(tileType)
 				print(tileLoc)
 				print(featureName)
