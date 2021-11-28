@@ -32,9 +32,17 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
 inline bool is_lut(const BaseCtx *ctx, const CellInfo *cell) { return cell->type == ctx->id("LUT1") || cell->type == ctx->id("LUT2") || cell->type == ctx->id("LUT3") || cell->type == ctx->id("LUT4"); }
 
 // Return true if a cell is a flipflop
-inline bool is_ff(const BaseCtx *ctx, const CellInfo *cell) { return cell->type == ctx->id("LUTFF"); }
+inline bool is_ff(const BaseCtx *ctx, const CellInfo *cell) 
+{
+    return  cell->type == ctx->id("LUTFF") || cell->type == ctx->id("LUTFF_E") ||
+            cell->type == ctx->id("LUTFF_SR") || cell->type == ctx->id("LUTFF_SS") ||
+            cell->type == ctx->id("LUTFF_ESR") || cell->type == ctx->id("LUTFF_ESS"); 
+}
 
 inline bool is_lc(const BaseCtx *ctx, const CellInfo *cell) { return cell->type == ctx->id("FABULOUS_LC"); }
+
+// Return true if a cell is a global buffer
+inline bool is_gbuf(const BaseCtx *ctx, const CellInfo *cell) { return cell->type == ctx->id("FABULOUS_GB"); }
 
 // Convert a LUT primitive to (part of) an GENERIC_SLICE, swapping ports
 // as needed. Set no_dff if a DFF is not being used, so that the output
@@ -49,6 +57,12 @@ void dff_to_lc(const Context *ctx, CellInfo *dff, CellInfo *lc, bool pass_thru_l
 
 // Convert a nextpnr IO buffer to a GENERIC_IOB
 void nxio_to_iob(Context *ctx, CellInfo *nxio, CellInfo *sbio, pool<IdString> &todelete_cells);
+
+// Return true if a port is a reset port
+bool is_reset_port(const BaseCtx *ctx, const PortRef &port);
+
+// Return true if a port is a clock enable port
+bool is_enable_port(const BaseCtx *ctx, const PortRef &port);
 
 NEXTPNR_NAMESPACE_END
 

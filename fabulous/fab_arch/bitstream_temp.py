@@ -7,6 +7,9 @@ param_map = {
 	("FABULOUS_LC", "K"): ParameterConfig(write=False),
 	("FABULOUS_LC", "INIT"): ParameterConfig(write=True, numeric=True, width=16),
 	("FABULOUS_LC", "DFF_ENABLE"): ParameterConfig(write=True, numeric=True, width=1),
+	("FABULOUS_LC", "SET_NORESET"): ParameterConfig(write=True, numeric=True, width=1),
+	("FABULOUS_LC", "EN_USED"): ParameterConfig(write=False),
+	("FABULOUS_LC", "SR_USED"): ParameterConfig(write=False),
 
 	("IO_1_bidirectional_frame_config_pass", "INPUT_USED"): ParameterConfig(write=True, numeric=True, width=1),
 	("IO_1_bidirectional_frame_config_pass", "OUTPUT_USED"): ParameterConfig(write=True, numeric=True, width=1),

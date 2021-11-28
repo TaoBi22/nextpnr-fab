@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef GENERIC_ARCH_H
-#define GENERIC_ARCH_H
+#ifndef FABULOUS_ARCH_H
+#define FABULOUS_ARCH_H
 
 #include <map>
 
@@ -27,6 +27,8 @@
 #include "idstringlist.h"
 #include "nextpnr_namespaces.h"
 #include "nextpnr_types.h"
+
+
 
 NEXTPNR_NAMESPACE_BEGIN
 
@@ -212,7 +214,7 @@ struct Arch : ArchAPI<ArchRanges>
 
     std::string getChipName() const override { return chipName; }
 
-    IdString archId() const override { return id("generic"); }
+    IdString archId() const override { return id("fabulous"); }
     ArchArgs archArgs() const override { return args; }
     IdString archArgsToId(ArchArgs args) const override { return id("none"); }
 
@@ -365,6 +367,26 @@ struct Arch : ArchAPI<ArchRanges>
     static const std::string defaultRouter;
     static const std::vector<std::string> availableRouters;
 
+    int get_driven_glb_netwk(BelId bel) const
+    {
+        NPNR_ASSERT(getBelType(bel) == id("FABULOUS_GB"));
+        IdString glb_net = getWireName(getBelPinWire(bel, id("GLOBAL_BUFFER_OUTPUT")))[2];
+        return std::stoi(std::string("") + glb_net.str(this).back());
+    }
+    // Return true if a port is a net
+    bool is_global_net(const NetInfo *net) const;
+    
+    // -------------------------------------------------
+
+    // Perform placement validity checks, returning false on failure (all
+    // implemented in arch_place.cc)
+
+    // Return true whether all Bels at a given location are valid
+    //bool isBelLocationValid(BelId bel) const;
+
+    // Helper function for above
+    bool logic_cells_compatible(const CellInfo **it, const size_t size) const;
+
     // ---------------------------------------------------------------
     // Internal usage
     void assignArchInfo() override;
@@ -373,4 +395,4 @@ struct Arch : ArchAPI<ArchRanges>
 
 NEXTPNR_NAMESPACE_END
 
-#endif /* GENERIC_ARCH_H */
+#endif /* FABULOUS_ARCH_H */

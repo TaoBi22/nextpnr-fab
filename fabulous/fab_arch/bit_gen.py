@@ -1806,6 +1806,7 @@ def genBitstream(fasmFile: str, specFile: str, bitstreamFile: str):
 
 	specDict = pickle.load(open(specFile,"rb"))
 	tileDict = {}
+	tileDict_No_Mask = {}
 
 	FrameBitsPerRow = specDict["ArchSpecs"]["FrameBitsPerRow"]
 	#MaxFramesPerCol = specDict["ArchSpecs"]["FrameBitsPerRow"]
@@ -1813,8 +1814,9 @@ def genBitstream(fasmFile: str, specFile: str, bitstreamFile: str):
 
 	#Change this so it has the actual right dimensions, initialised as an empty bitstream
 	for tile in specDict["TileMap"].keys():
-		bitStream = [0]*(MaxFramesPerCol*FrameBitsPerRow)
-		tileDict[tile] = bitStream
+		#bitStream = [0]*(MaxFramesPerCol*FrameBitsPerRow)
+		tileDict[tile] = [0]*(MaxFramesPerCol*FrameBitsPerRow)
+		tileDict_No_Mask[tile] = [0]*(MaxFramesPerCol*FrameBitsPerRow)
 
 	###NOTE: SOME OF THE FOLLOWING METHODS HAVE BEEN CHANGED DUE TO A MODIFIED BITSTREAM SPEC FORMAT
 	#Please bear in mind that the tilespecs are now mapped by tile loc and not by cell type
@@ -1832,14 +1834,19 @@ def genBitstream(fasmFile: str, specFile: str, bitstreamFile: str):
 				raise Exception("Tile found in fasm file not found in bitstream spec")
 			tileType = specDict["TileMap"][tileLoc]	#Set the necessary bits high 
 			if featureName in specDict["TileSpecs"][tileLoc].keys():
-				for bitIndex in specDict["TileSpecs"][tileLoc][featureName]:
-					tileDict[tileLoc][bitIndex] = specDict["TileSpecs"][tileLoc][featureName][bitIndex]
+				if specDict["TileSpecs"][tileLoc][featureName]:
+					for bitIndex in specDict["TileSpecs"][tileLoc][featureName]:
+						tileDict[tileLoc][bitIndex] = int(specDict["TileSpecs"][tileLoc][featureName][bitIndex])
+					for bitIndex_No_Mask in specDict["TileSpecs_No_Mask"][tileLoc][featureName]:
+						#print(isinstance(bitIndex_No_Mask, int))
+						#print(isinstance(specDict["TileSpecs_No_Mask"][tileLoc][featureName][bitIndex_No_Mask], int))
+						#if 'X1Y2' in tileLoc:
+						#	print(tileDict_No_Mask[tileLoc])
+						#	print(featureName)
+						#	print(specDict["TileSpecs_No_Mask"][tileLoc][featureName])
+						#	print(bitIndex_No_Mask)
+						tileDict_No_Mask[tileLoc][bitIndex_No_Mask] = int(specDict["TileSpecs_No_Mask"][tileLoc][featureName][bitIndex_No_Mask])
 
-			#if 'X3Y1' in tileLoc:
-			#		 print(tileDict[tileLoc])
-			#		 print(featureName)
-			#		 print(specDict["TileSpecs"][tileLoc][featureName])
-			#		 print(bitIndex)
 			else:
 				#print(specDict["TileSpecs"][tileLoc].keys())
 				print(tileType)
@@ -1866,6 +1873,23 @@ def genBitstream(fasmFile: str, specFile: str, bitstreamFile: str):
 
 	#default_hex = ['0','0','0','0','0','0','0','0']
 
+	verilog_str = ''
+	vhdl_str = 'library IEEE;\nuse IEEE.STD_LOGIC_1164.ALL;\n\npackage emulate_bitstream is\n'
+	for tileKey in tileDict_No_Mask:
+		if specDict["TileMap"][tileKey] == "NULL" or len(specDict["FrameMap"][specDict["TileMap"][tileKey]]) == 0:
+			continue
+		verilog_str += "//"+tileKey+", "+specDict["TileMap"][tileKey]+"\n"
+		verilog_str += "`define Tile_"+tileKey+"_Emulate_Bitstream "+str(MaxFramesPerCol*FrameBitsPerRow)+"'b"
+
+		vhdl_str += "--"+tileKey+", "+specDict["TileMap"][tileKey]+"\n"
+		vhdl_str += "constant Tile_"+tileKey+"_Emulate_Bitstream : std_logic_vector("+str(MaxFramesPerCol*FrameBitsPerRow)+'-1 downto 0) := "'
+
+		for i in range((MaxFramesPerCol*FrameBitsPerRow)-1,-1,-1):
+			verilog_str += str(tileDict_No_Mask[tileKey][i])
+			vhdl_str += str(tileDict_No_Mask[tileKey][i])
+		verilog_str += "\n"
+		vhdl_str += '";\n'
+	vhdl_str += "end package emulate_bitstream;"
 
 	for tileKey in tileDict:
 		coordsMatch = coordsRE.match(tileKey)
@@ -1947,6 +1971,8 @@ def genBitstream(fasmFile: str, specFile: str, bitstreamFile: str):
 	#Tile Loc, Tile Type, X, Y, bits...... \n 
 	#Each line is one tile
 	print(outStr, file = open(bitstreamFile.replace("bin","fasm"), "w+"))
+	print(verilog_str, file = open(bitstreamFile.replace("bin","vh"), "w+"))
+	print(vhdl_str, file = open(bitstreamFile.replace("bin","vhd"), "w+"))
 	#print(bitStr, file = open(bitstreamFile, "w+"))
 	#with open(bitstreamFile.replace("bit","bin"), 'bw+') as f:
 	with open(bitstreamFile, 'bw+') as f:

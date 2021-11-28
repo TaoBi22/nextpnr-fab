@@ -19,12 +19,15 @@
 
 #include <iostream>
 #include <math.h>
+#include "cells.h"
 #include "nextpnr.h"
 #include "placer1.h"
 #include "placer_heap.h"
 #include "router1.h"
 #include "router2.h"
 #include "util.h"
+
+#include <boost/range/iterator_range.hpp>
 
 NEXTPNR_NAMESPACE_BEGIN
 
@@ -593,7 +596,7 @@ bool Arch::route()
         router2(getCtx(), Router2Cfg(getCtx()));
         result = true;
     } else {
-        log_error("iCE40 architecture does not support router '%s'\n", router.c_str());
+        log_error("Fabulous architecture does not support router '%s'\n", router.c_str());
     }
     getCtx()->settings[getCtx()->id("route")] = 1;
     archInfoToAttributes();
@@ -667,6 +670,119 @@ bool Arch::isBelLocationValid(BelId bel) const
     return cellsCompatible(cells.data(), int(cells.size()));
 }
 
+/* bool Arch::isBelLocationValid(BelId bel) const
+{
+    if (getBelType(bel) == id("FABULOUS_LC")) {
+        std::array<const CellInfo *, 9> bel_cells;
+        size_t num_cells = 0;
+        Loc bel_loc = getBelLocation(bel);
+        for (auto bel_other : getBelsByTile(bel_loc.x, bel_loc.y)) {
+            CellInfo *ci_other = getBoundBelCell(bel_other);
+            if (ci_other != nullptr)
+                bel_cells[num_cells++] = ci_other;
+        }
+        return logic_cells_compatible(bel_cells.data(), num_cells);
+    } else {
+        CellInfo *cell = getBoundBelCell(bel);
+        if (cell == nullptr)
+            return true;
+        else if (cell->type == id_SB_IO) {
+            // Do not allow placement of input SB_IOs on blocks where there a PLL is outputting to.
+
+            // Find shared PLL by looking for driving bel siblings from D_IN_0
+            // that are a PLL clock output.
+            auto wire = getBelPinWire(bel, id_D_IN_0);
+            for (auto pin : getWireBelPins(wire)) {
+                if (pin.pin == id_PLLOUT_A || pin.pin == id_PLLOUT_B) {
+                    // Is there a PLL there ?
+                    auto pll_cell = getBoundBelCell(pin.bel);
+                    if (pll_cell == nullptr)
+                        break;
+
+                    // Is that port actually used ?
+                    if ((pin.pin == id_PLLOUT_B) && !is_sb_pll40_dual(this, pll_cell))
+                        break;
+
+                    // Is that SB_IO used at an input ?
+                    if ((cell->ports[id_D_IN_0].net == nullptr) && (cell->ports[id_D_IN_1].net == nullptr))
+                        break;
+
+                    // Are we perhaps a PAD INPUT Bel that can be placed here?
+                    if (pll_cell->attrs[id("BEL_PAD_INPUT")] == getBelName(bel).str(getCtx()))
+                        return true;
+
+                    // Conflict
+                    return false;
+                }
+            }
+
+            Loc ioLoc = getBelLocation(bel);
+            Loc compLoc = ioLoc;
+            compLoc.z = 1 - compLoc.z;
+
+            // Check LVDS pairing
+            if (cell->ioInfo.lvds) {
+                // Check correct z and complement location is free
+                if (ioLoc.z != 0)
+                    return false;
+                BelId compBel = getBelByLocation(compLoc);
+                CellInfo *compCell = getBoundBelCell(compBel);
+                if (compCell)
+                    return false;
+            } else {
+                // Check LVDS IO is not placed at complement location
+                BelId compBel = getBelByLocation(compLoc);
+                CellInfo *compCell = getBoundBelCell(compBel);
+                if (compCell && compCell->ioInfo.lvds)
+                    return false;
+
+                // Check for conflicts on shared nets
+                // - CLOCK_ENABLE
+                // - OUTPUT_CLK
+                // - INPUT_CLK
+                if (compCell) {
+                    bool use[6] = {
+                            _io_pintype_need_clk_in(cell->ioInfo.pintype),
+                            _io_pintype_need_clk_in(compCell->ioInfo.pintype),
+                            _io_pintype_need_clk_out(cell->ioInfo.pintype),
+                            _io_pintype_need_clk_out(compCell->ioInfo.pintype),
+                            _io_pintype_need_clk_en(cell->ioInfo.pintype),
+                            _io_pintype_need_clk_en(compCell->ioInfo.pintype),
+                    };
+                    NetInfo *nets[] = {
+                            cell->ports[id_INPUT_CLK].net,    compCell->ports[id_INPUT_CLK].net,
+                            cell->ports[id_OUTPUT_CLK].net,   compCell->ports[id_OUTPUT_CLK].net,
+                            cell->ports[id_CLOCK_ENABLE].net, compCell->ports[id_CLOCK_ENABLE].net,
+                    };
+
+                    for (int i = 0; i < 6; i++)
+                        if (use[i] && (nets[i] != nets[i ^ 1]) && (use[i ^ 1] || (nets[i ^ 1] != nullptr)))
+                            return false;
+                }
+            }
+
+            return get_bel_package_pin(bel) != "";
+        } else if (cell->type == id_SB_GB) {
+            if (cell->gbInfo.forPadIn)
+                return true;
+            NPNR_ASSERT(cell->ports.at(id_GLOBAL_BUFFER_OUTPUT).net != nullptr);
+            const NetInfo *net = cell->ports.at(id_GLOBAL_BUFFER_OUTPUT).net;
+            int glb_id = get_driven_glb_netwk(bel);
+            if (net->is_reset && net->is_enable)
+                return false;
+            else if (net->is_reset)
+                return (glb_id % 2) == 0;
+            else if (net->is_enable)
+                return (glb_id % 2) == 1;
+            else
+                return true;
+        }  else {
+            // TODO: IO cell clock checks
+            return true;
+        }
+    }
+} */
+
 #ifdef WITH_HEAP
 const std::string Arch::defaultPlacer = "heap";
 #else
@@ -682,13 +798,46 @@ const std::vector<std::string> Arch::availablePlacers = {"sa",
 const std::string Arch::defaultRouter = "router1";
 const std::vector<std::string> Arch::availableRouters = {"router1", "router2"};
 
+bool Arch::is_global_net(const NetInfo *net) const
+{
+    if (net == nullptr)
+        return false;
+    return net->driver.cell != nullptr && net->driver.port == id("GLOBAL_BUFFER_OUTPUT");
+}
+
 void Arch::assignArchInfo()
 {
+    for (auto &net : getCtx()->nets) {
+        NetInfo *ni = net.second.get();
+        if (is_global_net(ni))
+            ni->is_global = true;
+        ni->is_enable = false;
+        ni->is_reset = false;
+        for (auto usr : ni->users) {
+            if (is_enable_port(this, usr))
+                ni->is_enable = true;
+            if (is_reset_port(this, usr))
+                ni->is_reset = true;
+        }
+    }
+    
     for (auto &cell : getCtx()->cells) {
         CellInfo *ci = cell.second.get();
         if (ci->type == id("FABULOUS_LC")) {
             ci->is_slice = true;
             ci->slice_clk = get_net_or_empty(ci, id("CLK"));
+            ci->en = get_net_or_empty(ci, id("EN"));
+            ci->sr = get_net_or_empty(ci, id("SR"));
+            /* ci->dffEnable = bool_or_default(ci->params, id("DFF_ENABLE"));
+            ci->inputCount = 0;
+            if (get_net_or_empty(ci, id("I0")))
+                ci->inputCount++;
+            if (get_net_or_empty(ci, id("I1")))
+                ci->inputCount++;
+            if (get_net_or_empty(ci, id("I2")))
+                ci->inputCount++;
+            if (get_net_or_empty(ci, id("I3")))
+                ci->inputCount++; */
         } else {
             ci->is_slice = false;
         }
@@ -703,13 +852,26 @@ void Arch::assignArchInfo()
 bool Arch::cellsCompatible(const CellInfo **cells, int count) const
 {
     const NetInfo *clk = nullptr;
+    const NetInfo *en = nullptr, *sr = nullptr;
     int group = -1;
     for (int i = 0; i < count; i++) {
         const CellInfo *ci = cells[i];
-        if (ci->is_slice && ci->slice_clk != nullptr) {
+        if (ci->is_slice && (ci->slice_clk != nullptr)) {
             if (clk == nullptr)
                 clk = ci->slice_clk;
             else if (clk != ci->slice_clk)
+                return false;
+        }
+        if (ci->is_slice && (ci->en != nullptr)) {
+            if (en == nullptr)
+                en = ci->en;
+            else if (en != ci->en)
+                return false;
+        }
+        if (ci->is_slice && (ci->sr != nullptr)) {
+            if (sr == nullptr)
+                sr = ci->sr;
+            else if (sr != ci->sr)
                 return false;
         }
         if (ci->user_group != -1) {
@@ -721,5 +883,45 @@ bool Arch::cellsCompatible(const CellInfo **cells, int count) const
     }
     return true;
 }
+
+/* bool Arch::logic_cells_compatible(const CellInfo **it, const size_t size) const
+{
+    bool dffs_exist = false;
+    const NetInfo *en = nullptr, *sr = nullptr, *clk = nullptr;
+    int locals_count = 0;
+
+    for (auto cell : boost::make_iterator_range(it, it + size)) {
+        if (cell->type != id("MUX8LUT_frame_config")){
+            NPNR_ASSERT(cell->type == id("FABULOUS_LC"));
+            if (cell->dffEnable) {
+                if (!dffs_exist) {
+                    dffs_exist = true;
+                    clk = cell->slice_clk;
+                    en = cell->en;
+                    sr = cell->sr;
+    
+                    if (en != nullptr && !en->is_global)
+                        locals_count++;
+                    if (clk != nullptr && !clk->is_global)
+                        locals_count++;
+                    if (sr != nullptr && !sr->is_global)
+                        locals_count++;
+                    
+                } else {
+                    if (clk != cell->slice_clk)
+                        return false;
+                    if (en != cell->en)
+                        return false;
+                    if (sr != cell->sr)
+                        return false;
+                }
+            }
+        }
+
+        locals_count += cell->inputCount;
+    }
+
+    return locals_count <= 56;
+} */
 
 NEXTPNR_NAMESPACE_END

@@ -48,7 +48,7 @@ for i, line in enumerate(bel_lines):
             #ctx.addWire(name=tile+'_'+bel_idx+'_CLK', type='IO_CLK', x=bel_x, y=bel_y)
             if wire_name not in wires:
                 wires.append(wire_name)
-                ctx.addWire(name=wire_name, type='IO_'+port[-1], x=bel_x, y=bel_y)
+                ctx.addWire(name=wire_name, type='W_IO_'+port, x=bel_x, y=bel_y)
             if port[-1] in ['I', 'T']:
                 ctx.addBelInput(bel=bel_name, name=port[-1], wire=wire_name)
             else:
@@ -58,20 +58,20 @@ for i, line in enumerate(bel_lines):
             wire_name = tile+'_'+port
             if wire_name not in wires:
                 wires.append(wire_name)
-                ctx.addWire(name=wire_name, type=port[0:8], x=bel_x, y=bel_y)
+                ctx.addWire(name=wire_name, type=port, x=bel_x, y=bel_y)
             ctx.addBelOutput(bel=bel_name, name=port[-2:], wire=wire_name)
     elif bel_type == "OutPass4_frame_config":
         for port in bel_ports:
             wire_name = tile+'_'+port
             if wire_name not in wires:
                 wires.append(wire_name)
-                ctx.addWire(name=wire_name, type=port[0:8], x=bel_x, y=bel_y)
+                ctx.addWire(name=wire_name, type=port, x=bel_x, y=bel_y)
             ctx.addBelInput(bel=bel_name, name=port[-2:], wire=wire_name)
     elif bel_type == "RegFile_32x4":
         wire_name = tile+"_CLK"
         if wire_name not in wires:
             wires.append(wire_name)
-            ctx.addWire(name=wire_name, type="reg_clk", x=bel_x, y=bel_y)
+            ctx.addWire(name=wire_name, type="REG_CLK", x=bel_x, y=bel_y)
         ctx.addBelInput(bel=bel_name, name="CLK", wire=wire_name)
         ctx.addPip(name="X0Y0_CLK"+'_'+wire_name, type="global_clock",
                srcWire="X0Y0_CLK", dstWire=wire_name,
@@ -86,7 +86,7 @@ for i, line in enumerate(bel_lines):
             elif port[0] == 'W':
                 if wire_name not in wires:
                     wires.append(wire_name)
-                    ctx.addWire(name=wire_name, type="W_ADR", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name, type="WRITE_ADDRESS", x=bel_x, y=bel_y)
                 ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
             elif port[1] == 'D':
                 if wire_name not in wires:
@@ -96,7 +96,7 @@ for i, line in enumerate(bel_lines):
             else:
                 if wire_name not in wires:
                     wires.append(wire_name)
-                    ctx.addWire(name=wire_name, type="READ_ADR", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name, type="READ_ADDRESS", x=bel_x, y=bel_y)
                 ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
     elif bel_type == "MULADD":
         for port in bel_ports:
@@ -104,40 +104,63 @@ for i, line in enumerate(bel_lines):
             if port[0] == 'Q':
                 if wire_name not in wires:
                     wires.append(wire_name)
-                    ctx.addWire(name=wire_name, type="DATA_OUT", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name, type="DSP_DATA_OUT", x=bel_x, y=bel_y)
                 ctx.addBelOutput(bel=bel_name, name=port, wire=wire_name)
             elif port == "clr":
                 if wire_name not in wires:
                     wires.append(wire_name)
-                    ctx.addWire(name=wire_name, type="CLR", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name, type="DSP_CLR", x=bel_x, y=bel_y)
                 ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
             else:
                 if wire_name not in wires:
                     wires.append(wire_name)
-                    ctx.addWire(name=wire_name, type="DATA_IN", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name, type="DSP_DATA_IN", x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
+    elif bel_type == "MUX8LUT_frame_config":
+        for port in bel_ports:
+            wire_name = tile+'_'+port
+            if port[0] == 'M':
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="LUTMUX_"+port, x=bel_x, y=bel_y)
+                ctx.addBelOutput(bel=bel_name, name=port, wire=wire_name)
+            else:
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="LUTMUX_"+port, x=bel_x, y=bel_y)
                 ctx.addBelInput(bel=bel_name, name=port, wire=wire_name)
     elif bel_type == "FABULOUS_LC":
         wire_name = tile+"_L"+bel_idx+"_CLK"
         if wire_name not in wires:
             wires.append(wire_name)
-            ctx.addWire(name=wire_name, type="LUT_in", x=bel_x, y=bel_y)
+            ctx.addWire(name=wire_name, type="LUT_CLK", x=bel_x, y=bel_y)
         ctx.addBelInput(bel=bel_name, name="CLK", wire=wire_name)
         ctx.addPip(name="X0Y0_CLK"+'_'+wire_name, type="global_clock",
                srcWire="X0Y0_CLK", dstWire=wire_name,
                delay=ctx.getDelayFromNS(0.05), loc=Loc(0, 0, 0))
         for port in bel_ports:
             wire_name = tile+'_'+port
-            if port[3] == 'I':
+            if port[3] == 'S':
                 if wire_name not in wires:
                     wires.append(wire_name)
-                    ctx.addWire(name=wire_name, type="LUT_in", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name, type="LUT_"+port, x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port[3:], wire=wire_name)
+            elif port[3] == 'E':
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="LUT_"+port, x=bel_x, y=bel_y)
+                ctx.addBelInput(bel=bel_name, name=port[3:], wire=wire_name)
+            elif port[3] == 'I':
+                if wire_name not in wires:
+                    wires.append(wire_name)
+                    ctx.addWire(name=wire_name, type="LUT_"+port, x=bel_x, y=bel_y)
                 ctx.addBelInput(bel=bel_name, name=port[3:], wire=wire_name)
             elif port[3] == 'O':# or  port[3] == 'Q':
                 if wire_name not in wires:
                     wires.append(wire_name)
                     wires.append(wire_name.replace('_O','_Q'))
-                    ctx.addWire(name=wire_name, type="LUT_out", x=bel_x, y=bel_y)
-                    ctx.addWire(name=wire_name.replace('_O','_Q'), type="LUT_out", x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name, type="LUT_"+port, x=bel_x, y=bel_y)
+                    ctx.addWire(name=wire_name.replace('_O','_Q'), type="LUT_"+port, x=bel_x, y=bel_y)
                     #print(wire_name.replace('_O','_Q'))
                 ctx.addBelOutput(bel=bel_name, name=port[3], wire=wire_name)
                 ctx.addBelOutput(bel=bel_name, name='Q', wire=wire_name.replace('_O','_Q'))

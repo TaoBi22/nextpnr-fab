@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef GENERIC_ARCHDEFS_H
-#define GENERIC_ARCHDEFS_H
+#ifndef FABULOUS_ARCHDEFS_H
+#define FABULOUS_ARCHDEFS_H
 
 #include "hashlib.h"
 #include "idstringlist.h"
@@ -37,6 +37,8 @@ typedef IdString ClusterId;
 
 struct ArchNetInfo
 {
+    bool is_global = false;
+    bool is_reset = false, is_enable = false;
 };
 
 struct NetInfo;
@@ -50,10 +52,13 @@ struct ArchCellInfo
     bool is_slice;
     // Only packing rule for slice type primitives is a single clock per tile
     const NetInfo *slice_clk;
+    const NetInfo *en, *sr;
+    //bool dffEnable;
+    //int inputCount;
     // Cell to bel pin mapping
     dict<IdString, std::vector<IdString>> bel_pins;
 };
 
 NEXTPNR_NAMESPACE_END
 
-#endif /* GENERIC_ARCHDEFS_H */
+#endif /* FABULOUS_ARCHDEFS_H */

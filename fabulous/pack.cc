@@ -270,6 +270,121 @@ static void pack_io(Context *ctx)
     }
 }
 
+static void insert_global(Context *ctx, NetInfo *net, bool is_reset, bool is_enable, int fanout)
+{
+    log_info("promoting %s%s%s (fanout %d)\n", net->name.c_str(ctx), is_reset ? " [reset]" : "", is_enable ? " [enable]" : "", fanout);
+
+    std::string glb_name = net->name.str(ctx) + std::string("_$glb_") + (is_reset ? "sr" : "en");
+    std::unique_ptr<CellInfo> gb = create_fabulous_cell(ctx, ctx->id("FABULOUS_GB"), "$gbuf_" + glb_name);
+    gb->ports[ctx->id("USER_SIGNAL_TO_GLOBAL_BUFFER")].net = net;
+    PortRef pr;
+    pr.cell = gb.get();
+    pr.port = ctx->id("USER_SIGNAL_TO_GLOBAL_BUFFER");
+    net->users.push_back(pr);
+
+    pr.cell = gb.get();
+    pr.port = ctx->id("GLOBAL_BUFFER_OUTPUT");
+    std::unique_ptr<NetInfo> glbnet = std::unique_ptr<NetInfo>(new NetInfo());
+    glbnet->name = ctx->id(glb_name);
+    glbnet->driver = pr;
+    gb->ports[ctx->id("GLOBAL_BUFFER_OUTPUT")].net = glbnet.get();
+    std::vector<PortRef> keep_users;
+    for (auto user : net->users) {
+        if ((is_reset && is_reset_port(ctx, user)) || (is_enable && is_enable_port(ctx, user)) ) 
+        {
+            user.cell->ports[user.port].net = glbnet.get();
+            glbnet->users.push_back(user);
+        } else {
+            keep_users.push_back(user);
+        }
+    }
+    net->users = keep_users;
+
+    ctx->nets[glbnet->name] = std::move(glbnet);
+    ctx->cells[gb->name] = std::move(gb);
+}
+
+// Simple global promoter (clock only)
+static void promote_globals(Context *ctx)
+{
+    log_info("Promoting globals..\n");
+    const int enable_fanout_thresh = 15;
+    const int reset_fanout_thresh = 15;
+    std::map<IdString, int> reset_count, enable_count;
+    for (auto &net : ctx->nets) {
+        NetInfo *ni = net.second.get();
+        if (ni->driver.cell != nullptr && !ctx->is_global_net(ni)) {
+            reset_count[net.first] = 0;
+            enable_count[net.first] = 0;
+
+            for (auto user : ni->users) {
+                if (is_reset_port(ctx, user))
+                    reset_count[net.first]++;
+                if (is_enable_port(ctx, user))
+                    enable_count[net.first]++;
+            }
+        }
+    }
+    int prom_globals = 0, prom_resets = 0, prom_enables = 0;
+    int gbs_available = 8, resets_available = 4, enables_available = 4;
+    for (auto &cell : ctx->cells)
+        if (is_gbuf(ctx, cell.second.get())) {
+            /* One less buffer available */
+            --gbs_available;
+
+            /* And possibly limits what we can promote */
+            if (cell.second->attrs.find(ctx->id("BEL")) != cell.second->attrs.end()) {
+                /* If the SB_GB is locked, doesn't matter what it drives */
+                BelId bel = ctx->getBelByNameStr(cell.second->attrs[ctx->id("BEL")].as_string());
+                int glb_id = ctx->get_driven_glb_netwk(bel);
+                if ((glb_id % 2) == 0)
+                    resets_available--;
+                else if ((glb_id % 2) == 1)
+                    enables_available--;
+            } else {
+                /* If it's free to move around, then look at what it drives */
+                NetInfo *ni = cell.second->ports[ctx->id("GLOBAL_BUFFER_OUTPUT")].net;
+
+                for (auto user : ni->users) {
+                    if (is_reset_port(ctx, user)) {
+                        resets_available--;
+                        break;
+                    } else if (is_enable_port(ctx, user)) {
+                        enables_available--;
+                        break;
+                    }
+                }
+            }
+        }
+    while (prom_globals < gbs_available) {
+        auto global_reset = std::max_element(reset_count.begin(), reset_count.end(),
+                                             [](const std::pair<IdString, int> &a, const std::pair<IdString, int> &b) {
+                                                 return a.second < b.second;
+                                             });
+        auto global_enable = std::max_element(enable_count.begin(), enable_count.end(),
+                                           [](const std::pair<IdString, int> &a, const std::pair<IdString, int> &b) {
+                                               return a.second < b.second;
+                                           });
+        if (prom_resets < resets_available && global_reset->second > reset_fanout_thresh) {
+            NetInfo *rstnet = ctx->nets[global_reset->first].get();
+            insert_global(ctx, rstnet, true, false, global_reset->second);
+            ++prom_globals;
+            ++prom_resets;
+            reset_count.erase(rstnet->name);
+            enable_count.erase(rstnet->name);
+        } else if (prom_enables < enables_available && global_enable->second > enable_fanout_thresh) {
+            NetInfo *enablenet = ctx->nets[global_enable->first].get();
+            insert_global(ctx, enablenet, false, true, global_enable->second);
+            ++prom_globals;
+            ++prom_enables;
+            reset_count.erase(enablenet->name);
+            enable_count.erase(enablenet->name);
+        } else {
+            break;
+        }
+    }
+}
+
 // Main pack function
 bool Arch::pack()
 {
@@ -280,6 +395,7 @@ bool Arch::pack()
         pack_io(ctx);
         pack_lut_lutffs(ctx);
         pack_nonlut_ffs(ctx);
+        //promote_globals(ctx);
         ctx->settings[ctx->id("pack")] = 1;
         ctx->assignArchInfo();
         log_info("Checksum: 0x%08x\n", ctx->checksum());

@@ -46,6 +46,9 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
         new_cell->params[ctx->id("K")] = ctx->args.K;
         new_cell->params[ctx->id("INIT")] = 0;
         new_cell->params[ctx->id("DFF_ENABLE")] = 0;
+        new_cell->params[ctx->id("SET_NORESET")] = 0;
+        new_cell->params[ctx->id("EN_USED")] = 0;
+        new_cell->params[ctx->id("SR_USED")] = 0;
 
         add_port(ctx, new_cell.get(), "I0", PORT_IN);
         add_port(ctx, new_cell.get(), "I1", PORT_IN);
@@ -53,8 +56,8 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
         add_port(ctx, new_cell.get(), "I3", PORT_IN);
         add_port(ctx, new_cell.get(), "CIN", PORT_IN);
         add_port(ctx, new_cell.get(), "CLK", PORT_IN);
-        //add_port(ctx, new_cell.get(), "CE", PORT_IN);
-        //add_port(ctx, new_cell.get(), "SR", PORT_IN);
+        add_port(ctx, new_cell.get(), "EN", PORT_IN);
+        add_port(ctx, new_cell.get(), "SR", PORT_IN);
         add_port(ctx, new_cell.get(), "O", PORT_OUT);
         add_port(ctx, new_cell.get(), "Q", PORT_OUT);
         //add_port(ctx, new_cell.get(), "OMUX", PORT_OUT);
@@ -177,8 +180,11 @@ std::unique_ptr<CellInfo> create_fabulous_cell(Context *ctx, IdString type, std:
         add_port(ctx, new_cell.get(), "C17", PORT_IN);
         add_port(ctx, new_cell.get(), "C18", PORT_IN);
         add_port(ctx, new_cell.get(), "C19", PORT_IN); 
+    } else if (type == ctx->id("FABULOUS_GB")) {
+        add_port(ctx, new_cell.get(), "USER_SIGNAL_TO_GLOBAL_BUFFER", PORT_IN);
+        add_port(ctx, new_cell.get(), "GLOBAL_BUFFER_OUTPUT", PORT_OUT);
     } else {
-        log_error("unable to create generic cell of type %s", type.c_str(ctx));
+        log_error("unable to create fabulous cell of type %s", type.c_str(ctx));
     }
     return new_cell;
 }
@@ -209,7 +215,41 @@ void lut_to_lc(const Context *ctx, CellInfo *lut, CellInfo *lc, bool no_dff)
 void dff_to_lc(const Context *ctx, CellInfo *dff, CellInfo *lc, bool pass_thru_lut)
 {
     lc->params[ctx->id("DFF_ENABLE")] = 1;
+    std::string config = dff->type.str(ctx).substr(5);
+    auto citer = config.begin();
     replace_port(dff, ctx->id("CLK"), lc, ctx->id("CLK"));
+    if (citer != config.end()) {
+        ++citer;
+    }
+    if (citer != config.end() && *citer == 'E') {
+        replace_port(dff, ctx->id("E"), lc, ctx->id("EN"));
+        lc->params[ctx->id("EN_USED")] = 1;
+        ++citer;
+    }
+    if (citer != config.end()) {
+        if ((config.end() - citer) >= 2) {
+            char c = *(citer++);
+            NPNR_ASSERT(c == 'S');
+            //lc->params[ctx->id("ASYNC_SR")] = Property::State::S0;
+        } //else {
+            //lc->params[ctx->id("ASYNC_SR")] = Property::State::S1;
+        //}
+
+        if (*citer == 'S') {
+        citer++;
+        replace_port(dff, ctx->id("S"), lc, ctx->id("SR"));
+        lc->params[ctx->id("SET_NORESET")] = 1;
+        lc->params[ctx->id("SR_USED")] = 1;
+        } else {
+        NPNR_ASSERT(*citer == 'R');
+        citer++;
+        replace_port(dff, ctx->id("R"), lc, ctx->id("SR"));
+        lc->params[ctx->id("SET_NORESET")] = 0;
+        lc->params[ctx->id("SR_USED")] = 1;
+        }
+    }
+    
+    NPNR_ASSERT(citer == config.end());
 
     if (pass_thru_lut) {
         // Fill LUT with alternating 10
@@ -263,6 +303,28 @@ void nxio_to_iob(Context *ctx, CellInfo *nxio, CellInfo *iob, pool<IdString> &to
         ctx->nets.erase(donet->name);
         todelete_cells.insert(tbuf->name);
     }
+}
+
+bool is_reset_port(const BaseCtx *ctx, const PortRef &port)
+{
+    if (port.cell == nullptr)
+        return false;
+    if (is_ff(ctx, port.cell))
+        return port.port == ctx->id("R") || port.port == ctx->id("S");
+    if (port.cell->type == ctx->id("FABULOUS_LC"))
+        return port.port == ctx->id("SR");
+    return false;
+}
+
+bool is_enable_port(const BaseCtx *ctx, const PortRef &port)
+{
+    if (port.cell == nullptr)
+        return false;
+    if (is_ff(ctx, port.cell))
+        return port.port == ctx->id("E");
+    if (port.cell->type == ctx->id("FABULOUS_LC"))
+        return port.port == ctx->id("EN");
+    return false;
 }
 
 NEXTPNR_NAMESPACE_END
