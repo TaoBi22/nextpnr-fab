@@ -19,6 +19,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
+    - name: Install Boost
+      run: apt install libboost-all-dev
 
     - name: Run CMake
       # Build your program with the given configuration
