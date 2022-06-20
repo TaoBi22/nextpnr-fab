@@ -20,8 +20,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Install Boost
-      run: apt install libboost-all-dev
+    - name: Install boost
+      uses: MarkusJx/install-boost@v2.3.0
+      id: install-boost
+      with:
+        boost_version: 1.73.0
+        # OPTIONAL: Specify a toolset
+        toolset: gcc
+
 
     - name: Run CMake
       # Build your program with the given configuration
